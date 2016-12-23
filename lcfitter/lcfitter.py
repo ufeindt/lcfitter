@@ -46,7 +46,7 @@ class LCFitter( BaseObject ):
     def __init__(self, lightcurves=None, source='salt2', model=None, 
                  cosmo=Planck15, empty=False,
                  fit_param=['t0', 'x0', 'x1', 'c'], bounds=None, 
-                 load_from=None, modelcov=False):
+                 load_from=None, modelcov=False, iterative_modelcov=True):
         """
         Arguments:
         ----------
@@ -70,7 +70,7 @@ class LCFitter( BaseObject ):
         load_from -- file with previously saved lcs and fits
 
         modelcov -- Use model covariance (currently not properly implemented; 
-                    using hacked sncosmo.fitting) [Not implemented yet]
+                    using hacked sncosmo.fitting)
         """
         self.__build__()
         if empty:
@@ -89,22 +89,22 @@ class LCFitter( BaseObject ):
             self._properties['lightcurves'] = lightcurves
             self._side_properties['fit_param'] = fit_param
             self._side_properties['bounds'] = bounds
-            self._update_(modelcov=modelcov)
+            self._update_(modelcov=modelcov, iterative_modelcov=iterative_modelcov)
         else:
             self.load(load_from)
         
     # --------------------------- #
     # - Update and fit Methods  - #
     # --------------------------- #
-    def _update_(self, modelcov=False):
+    def _update_(self, **kwargs):
         """
         """
-        self.fit_all(modelcov=modelcov)
+        self.fit_all(**kwargs)
 
     def fit_all(self, modelcov=False, iterative_modelcov=False):
         """
         """
-        if modelcov:
+        if modelcov and not iterative_modelcov:
             # TODO: Implement fitting with modelcov
             # from hacked_sncosmo_fitting import fit_lc_hacked
             raise NotImplementedError("Model covariance coming soon.")
@@ -123,10 +123,10 @@ class LCFitter( BaseObject ):
                 self.model.set(**{pname: lc.meta[pname]})
 
             try: 
-                if iterative_modelcov:
+                if modelcov and iterative_modelcov:
                     res, _ = fit_lc_mcov_iterative(lc, self.model, 
                                                    self.fit_param, 
-                                                   bouns=self.bounds)
+                                                   bounds=self.bounds)
                 else:
                     res, _ = fit_lc(lc, self.model, self.fit_param,
                                     bounds=self.bounds, modelcov=modelcov)
